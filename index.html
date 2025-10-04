@@ -1,11 +1,129 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Trang dành cho giáo viên</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Dashboard</title>
+<style>
+body{margin:0;font-family:'Poppins',sans-serif;background:#f0f2f5;}
+header{background:#4CAF50;color:white;padding:20px;text-align:center;font-size:24px;}
+.container{padding:20px;max-width:900px;margin:auto;}
+.card{background:white;padding:20px;margin-bottom:20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+input, textarea, select, button{padding:10px;margin:5px 0;width:100%;border-radius:8px;border:1px solid #ccc;font-size:16px;}
+button{background:#4CAF50;color:white;border:none;cursor:pointer;}
+button:hover{background:#45a049;}
+table{width:100%;border-collapse:collapse;}
+th, td{padding:12px;text-align:left;border-bottom:1px solid #ddd;}
+th{background:#f4f4f4;}
+.status-present{color:green;font-weight:bold;}
+.status-absent{color:red;font-weight:bold;}
+</style>
 </head>
 <body>
-  <h1>Chào mừng giáo viên!</h1>
-  <p>Bạn đã vào trang giáo viên.</p>
+
+<header>Teacher Dashboard</header>
+<div class="container">
+
+  <!-- Giao bài tập -->
+  <div class="card">
+    <h2>Giao Bài Tập</h2>
+    <input type="text" id="taskTitle" placeholder="Tên bài tập">
+    <textarea id="taskDesc" placeholder="Mô tả bài tập"></textarea>
+    <button onclick="addTask()">Thêm Bài Tập</button>
+    <ul id="taskList"></ul>
+  </div>
+
+  <!-- Điểm danh -->
+  <div class="card">
+    <h2>Điểm Danh</h2>
+    <table>
+      <thead>
+        <tr><th>Học Sinh</th><th>Trạng Thái</th><th>Hành Động</th></tr>
+      </thead>
+      <tbody id="studentList">
+        <!-- danh sách học sinh từ Firestore -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
+  authDomain: "classweb-11389.firebaseapp.com",
+  projectId: "classweb-11389",
+  storageBucket: "classweb-11389.firebasestorage.app",
+  messagingSenderId: "91367336185",
+  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
+  measurementId: "G-7123YZQKWV"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 🔹 Giao bài tập
+async function addTask(){
+  const title = document.getElementById("taskTitle").value.trim();
+  const desc = document.getElementById("taskDesc").value.trim();
+  if(!title){ alert("Nhập tên bài tập!"); return; }
+  const taskId = Date.now().toString();
+  await setDoc(doc(db,"tasks",taskId),{title,desc,createdAt:new Date()});
+  document.getElementById("taskTitle").value="";
+  document.getElementById("taskDesc").value="";
+  loadTasks();
+}
+
+async function loadTasks(){
+  const taskList = document.getElementById("taskList");
+  taskList.innerHTML="";
+  const querySnapshot = await getDocs(collection(db,"tasks"));
+  querySnapshot.forEach((docSnap)=>{
+    const li = document.createElement("li");
+    li.textContent = docSnap.data().title + " - " + docSnap.data().desc;
+    taskList.appendChild(li);
+  });
+}
+
+// 🔹 Điểm danh
+async function loadStudents(){
+  const tbody = document.getElementById("studentList");
+  tbody.innerHTML="";
+  const studentsSnap = await getDocs(collection(db,"students"));
+  studentsSnap.forEach((docSnap)=>{
+    const data = docSnap.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${data.name}</td>
+                    <td id="status-${docSnap.id}" class="status-absent">Vắng</td>
+                    <td>
+                      <button onclick="markPresent('${docSnap.id}')">Có Mặt</button>
+                      <button onclick="markAbsent('${docSnap.id}')">Vắng</button>
+                    </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function markPresent(studentId){
+  document.getElementById("status-"+studentId).textContent="Có Mặt";
+  document.getElementById("status-"+studentId).className="status-present";
+  await setDoc(doc(db,"students",studentId),{status:"present"},{merge:true});
+}
+
+async function markAbsent(studentId){
+  document.getElementById("status-"+studentId).textContent="Vắng";
+  document.getElementById("status-"+studentId).className="status-absent";
+  await setDoc(doc(db,"students",studentId),{status:"absent"},{merge:true});
+}
+
+// Load dữ liệu lúc mở trang
+loadTasks();
+loadStudents();
+
+</script>
+
 </body>
 </html>
