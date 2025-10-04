@@ -77,7 +77,9 @@ async function addTask(){
   document.getElementById("taskDesc").value="";
   loadTasks();
 }
+window.addTask = addTask;
 
+// 🔹 Load danh sách bài tập
 async function loadTasks(){
   const taskList = document.getElementById("taskList");
   taskList.innerHTML="";
@@ -98,7 +100,7 @@ async function loadStudents(){
     const data = docSnap.data();
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${data.name}</td>
-                    <td id="status-${docSnap.id}" class="status-absent">Vắng</td>
+                    <td id="status-${docSnap.id}" class="${data.status==='present'?'status-present':'status-absent'}">${data.status==='present'?'Có Mặt':'Vắng'}</td>
                     <td>
                       <button onclick="markPresent('${docSnap.id}')">Có Mặt</button>
                       <button onclick="markAbsent('${docSnap.id}')">Vắng</button>
@@ -107,22 +109,24 @@ async function loadStudents(){
   });
 }
 
+// 🔹 Cập nhật điểm danh
 async function markPresent(studentId){
   document.getElementById("status-"+studentId).textContent="Có Mặt";
   document.getElementById("status-"+studentId).className="status-present";
   await setDoc(doc(db,"students",studentId),{status:"present"},{merge:true});
 }
-
 async function markAbsent(studentId){
   document.getElementById("status-"+studentId).textContent="Vắng";
   document.getElementById("status-"+studentId).className="status-absent";
   await setDoc(doc(db,"students",studentId),{status:"absent"},{merge:true});
 }
 
+window.markPresent = markPresent;
+window.markAbsent = markAbsent;
+
 // Load dữ liệu lúc mở trang
 loadTasks();
 loadStudents();
-
 </script>
 
 </body>
