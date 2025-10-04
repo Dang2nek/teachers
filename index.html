@@ -1,133 +1,214 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teacher Dashboard</title>
-<style>
-body{margin:0;font-family:'Poppins',sans-serif;background:#f0f2f5;}
-header{background:#4CAF50;color:white;padding:20px;text-align:center;font-size:24px;}
-.container{padding:20px;max-width:900px;margin:auto;}
-.card{background:white;padding:20px;margin-bottom:20px;border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
-input, textarea, select, button{padding:10px;margin:5px 0;width:100%;border-radius:8px;border:1px solid #ccc;font-size:16px;}
-button{background:#4CAF50;color:white;border:none;cursor:pointer;}
-button:hover{background:#45a049;}
-table{width:100%;border-collapse:collapse;}
-th, td{padding:12px;text-align:left;border-bottom:1px solid #ddd;}
-th{background:#f4f4f4;}
-.status-present{color:green;font-weight:bold;}
-.status-absent{color:red;font-weight:bold;}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Web đang bảo trì</title>
+  <style>
+    :root{ --bg:#040714; --accent:#ff6b6b; --soft:#9fb4ff }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(ellipse at 20% 10%, #0b1630 0%, transparent 30%), linear-gradient(180deg,#020417 0%, #040714 100%);color:#fff;overflow:hidden}
+
+    /* Sky / stars */
+    .stars{position:fixed;inset:0;z-index:0;background-image:radial-gradient(#ffffff 0.6px, transparent 0.6px);background-size:6px 6px;opacity:.06}
+    .twinkle{position:absolute;inset:0;background-image:radial-gradient(white 1px, transparent 1px);background-size:120px 120px;opacity:.06;animation:tw 6s linear infinite}
+    @keyframes tw{0%{opacity:.06}50%{opacity:.12}100%{opacity:.06}}
+
+    /* Scene */
+    .scene{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center}
+    canvas{display:block;z-index:1}
+
+    /* HUD / message */
+    .message{position:fixed;left:50%;transform:translateX(-50%);bottom:40px;background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));backdrop-filter: blur(6px);padding:18px 24px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);text-align:center;z-index:10}
+    .message h1{margin:0;font-size:20px;letter-spacing:0.6px}
+    .message p{margin:6px 0 0;opacity:.8;font-size:13px}
+
+    /* Modal maintenance */
+    .overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(1,6,12,0.7),rgba(2,4,10,0.85));display:flex;align-items:center;justify-content:center;z-index:20;opacity:0;pointer-events:none;transition:opacity .4s ease}
+    .overlay.show{opacity:1;pointer-events:auto}
+    .card{width:min(720px,92%);background:linear-gradient(180deg,#05102a,#021024);padding:28px;border-radius:14px;box-shadow:0 8px 40px rgba(2,6,15,0.6);border:1px solid rgba(255,255,255,0.04);display:flex;gap:20px;align-items:center}
+    .card .left{flex:0 0 140px}
+    .planet-ghost{width:120px;height:120px;border-radius:999px;background:radial-gradient(circle at 30% 30%, #ff9b9b 0%, #ff6b6b 18%, #8f3847 30%, #4b1f2d 60%, rgba(0,0,0,0.4) 100%);box-shadow:0 10px 40px rgba(255,107,107,0.12), inset -8px -6px 30px rgba(0,0,0,0.35)}
+    .card .right{flex:1;color:#e7f0ff}
+    .card h2{margin:0 0 6px;font-size:22px}
+    .card p{margin:0;opacity:.9}
+    .btn{margin-top:12px;display:inline-block;padding:8px 12px;border-radius:10px;background:#ff6b6b;color:#081021;text-decoration:none;font-weight:600}
+
+    /* small shake when crash */
+    .shake{animation:shake .5s ease-in-out 0s 4}
+    @keyframes shake{0%{transform:translateY(0)}25%{transform:translateY(-6px)}50%{transform:translateY(0)}75%{transform:translateY(6px)}100%{transform:translateY(0)} }
+
+    /* footer small hint */
+    .hint{position:fixed;left:14px;bottom:10px;font-size:12px;color:rgba(255,255,255,0.5);z-index:11}
+  </style>
 </head>
 <body>
+  <div class="stars"></div>
+  <div class="twinkle"></div>
 
-<header>Teacher Dashboard</header>
-<div class="container">
-
-  <!-- Giao bài tập -->
-  <div class="card">
-    <h2>Giao Bài Tập</h2>
-    <input type="text" id="taskTitle" placeholder="Tên bài tập">
-    <textarea id="taskDesc" placeholder="Mô tả bài tập"></textarea>
-    <button onclick="addTask()">Thêm Bài Tập</button>
-    <ul id="taskList"></ul>
+  <div class="scene">
+    <canvas id="c"></canvas>
   </div>
 
-  <!-- Điểm danh -->
-  <div class="card">
-    <h2>Điểm Danh</h2>
-    <table>
-      <thead>
-        <tr><th>Học Sinh</th><th>Trạng Thái</th><th>Hành Động</th></tr>
-      </thead>
-      <tbody id="studentList">
-        <!-- danh sách học sinh từ Firestore -->
-      </tbody>
-    </table>
+  <div class="message" id="message">
+    <h1>Hệ thống: Tạm dừng — Bảo trì</h1>
+    <p>Đang chuyển sang chế độ bảo trì... vui lòng quay lại sau.</p>
   </div>
 
-</div>
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="card" role="dialog" aria-labelledby="maintitle">
+      <div class="left">
+        <div class="planet-ghost" aria-hidden="true"></div>
+      </div>
+      <div class="right">
+        <h2 id="maintitle">Website đang bảo trì</h2>
+        <p>Chúng tôi đang thực hiện một số nâng cấp. Cảm ơn bạn đã kiên nhẫn.</p>
+        <a class="btn" href="#" id="refreshBtn">Tải lại trang</a>
+      </div>
+    </div>
+  </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  <div class="hint">Nhấn phím <kbd>Space</kbd> để kích hoạt va chạm</div>
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyANHvtLT4TpJW9C6qhmNdiIGYcbe5th_Yw",
-  authDomain: "classweb-11389.firebaseapp.com",
-  projectId: "classweb-11389",
-  storageBucket: "classweb-11389.firebasestorage.app",
-  messagingSenderId: "91367336185",
-  appId: "1:91367336185:web:30a78cfe10e459b0605a28",
-  measurementId: "G-7123YZQKWV"
-};
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth;
+    let H = canvas.height = innerHeight;
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+    // Scene objects
+    const planet = { x: W*0.78, y: H*0.6, r: Math.min(250, H*0.22), color: '#17478a' };
+    const ship = { x: -120, y: H*0.35, w: 90, h: 36, angle: 0, vx: 6, alive: true };
+    let particles = [];
+    let crashed = false;
 
-// 🔹 Giao bài tập
-async function addTask(){
-  const title = document.getElementById("taskTitle").value.trim();
-  const desc = document.getElementById("taskDesc").value.trim();
-  if(!title){ alert("Nhập tên bài tập!"); return; }
-  const taskId = Date.now().toString();
-  await setDoc(doc(db,"tasks",taskId),{title,desc,createdAt:new Date()});
-  document.getElementById("taskTitle").value="";
-  document.getElementById("taskDesc").value="";
-  loadTasks();
-}
-window.addTask = addTask;
+    // Resize handling
+    addEventListener('resize', ()=>{
+      W = canvas.width = innerWidth; H = canvas.height = innerHeight;
+      planet.x = W*0.78; planet.y = H*0.6; planet.r = Math.min(250, H*0.22);
+      ship.y = H*0.35;
+    });
 
-// 🔹 Load danh sách bài tập
-async function loadTasks(){
-  const taskList = document.getElementById("taskList");
-  taskList.innerHTML="";
-  const querySnapshot = await getDocs(collection(db,"tasks"));
-  querySnapshot.forEach((docSnap)=>{
-    const li = document.createElement("li");
-    li.textContent = docSnap.data().title + " - " + docSnap.data().desc;
-    taskList.appendChild(li);
-  });
-}
+    function drawPlanet(){
+      // planet body
+      const g = ctx.createRadialGradient(planet.x - planet.r*0.3, planet.y - planet.r*0.4, planet.r*0.1, planet.x, planet.y, planet.r);
+      g.addColorStop(0, '#ffc3c3'); g.addColorStop(.25, '#ff6b6b'); g.addColorStop(.5, '#a23b48'); g.addColorStop(1, '#2b1220');
+      ctx.beginPath(); ctx.arc(planet.x, planet.y, planet.r, 0, Math.PI*2); ctx.fillStyle = g; ctx.fill();
+      // crater shadows
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath(); ctx.ellipse(planet.x - planet.r*0.18, planet.y - planet.r*0.06, planet.r*0.5, planet.r*0.24, -0.4, 0, Math.PI*2); ctx.fill();
 
-// 🔹 Điểm danh
-async function loadStudents(){
-  const tbody = document.getElementById("studentList");
-  tbody.innerHTML="";
-  const studentsSnap = await getDocs(collection(db,"students"));
-  studentsSnap.forEach((docSnap)=>{
-    const data = docSnap.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${data.name}</td>
-                    <td id="status-${docSnap.id}" class="${data.status==='present'?'status-present':'status-absent'}">${data.status==='present'?'Có Mặt':'Vắng'}</td>
-                    <td>
-                      <button onclick="markPresent('${docSnap.id}')">Có Mặt</button>
-                      <button onclick="markAbsent('${docSnap.id}')">Vắng</button>
-                    </td>`;
-    tbody.appendChild(tr);
-  });
-}
+      // subtle glow
+      ctx.beginPath(); ctx.arc(planet.x, planet.y, planet.r+14, 0, Math.PI*2); ctx.strokeStyle = 'rgba(255,120,120,0.03)'; ctx.lineWidth = 30; ctx.stroke();
+    }
 
-// 🔹 Cập nhật điểm danh
-async function markPresent(studentId){
-  document.getElementById("status-"+studentId).textContent="Có Mặt";
-  document.getElementById("status-"+studentId).className="status-present";
-  await setDoc(doc(db,"students",studentId),{status:"present"},{merge:true});
-}
-async function markAbsent(studentId){
-  document.getElementById("status-"+studentId).textContent="Vắng";
-  document.getElementById("status-"+studentId).className="status-absent";
-  await setDoc(doc(db,"students",studentId),{status:"absent"},{merge:true});
-}
+    function drawShip(){
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(ship.angle);
+      // body
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(ship.w*0.6, -ship.h*0.6); ctx.lineTo(ship.w, 0); ctx.lineTo(ship.w*0.6, ship.h*0.6); ctx.closePath();
+      ctx.fillStyle = '#dfefff'; ctx.fill();
+      // cockpit
+      ctx.beginPath(); ctx.ellipse(ship.w*0.5, 0, ship.h*0.35, ship.h*0.28, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#17385a'; ctx.fill();
+      // engine flame
+      if(ship.alive){
+        ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-30, -14); ctx.lineTo(-30, 14); ctx.closePath();
+        const gg = ctx.createLinearGradient(-10,0,-40,0); gg.addColorStop(0,'#ffd29a'); gg.addColorStop(1,'#ff6b6b');
+        ctx.fillStyle = gg; ctx.fill();
+      }
+      ctx.restore();
+    }
 
-window.markPresent = markPresent;
-window.markAbsent = markAbsent;
+    function spawnParticles(x,y,amount,spread,baseSpeed){
+      for(let i=0;i<amount;i++){
+        const a = (Math.random()-0.5)*spread;
+        const s = baseSpeed*(0.5+Math.random());
+        particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:60+Math.random()*50,r:2+Math.random()*4,color: `hsl(${Math.random()*40+10},100%,60%)`});
+      }
+    }
 
-// Load dữ liệu lúc mở trang
-loadTasks();
-loadStudents();
-</script>
+    function updateParticles(){
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.18; p.life--; p.r *= 0.99;
+        if(p.life<=0||p.r<0.4) particles.splice(i,1);
+      }
+    }
 
+    function checkCollision(){
+      const dx = ship.x - planet.x; const dy = ship.y - planet.y; const dist = Math.hypot(dx,dy);
+      if(dist < planet.r + 18 && !crashed){
+        crashed = true; ship.alive = false; triggerCrash();
+      }
+    }
+
+    function triggerCrash(){
+      spawnParticles(ship.x, ship.y, 120, Math.PI*2, 6);
+      spawnParticles(planet.x - planet.r*0.45, planet.y - planet.r*0.2, 140, Math.PI*1.4, 4);
+      // screen flash
+      flashScreen();
+      // shake body
+      document.body.classList.add('shake'); setTimeout(()=>document.body.classList.remove('shake'), 2200);
+      // show overlay after small delay
+      setTimeout(()=>{
+        document.getElementById('overlay').classList.add('show');
+        document.getElementById('overlay').setAttribute('aria-hidden','false');
+      }, 900);
+      // update message
+      document.getElementById('message').querySelector('h1').textContent = 'Lỗi hệ thống: Va chạm nghiêm trọng';
+      document.getElementById('message').querySelector('p').textContent = 'Website chuyển sang chế độ bảo trì. Xin vui lòng quay lại sau.';
+    }
+
+    function flashScreen(){
+      const flash = document.createElement('div'); flash.style.position='fixed'; flash.style.inset='0'; flash.style.background='rgba(255,240,220,0.9)'; flash.style.zIndex='50'; flash.style.pointerEvents='none'; flash.style.mixBlendMode='screen'; document.body.appendChild(flash);
+      flash.animate([{opacity:1},{opacity:0}],{duration:300, easing:'ease-out'}).onfinish = ()=>flash.remove();
+    }
+
+    let frame = 0;
+    function loop(){
+      frame++;
+      ctx.clearRect(0,0,W,H);
+
+      // background subtle gradient near bottom
+      const bgGrad = ctx.createLinearGradient(0,H*0.62,0,H); bgGrad.addColorStop(0,'rgba(0,0,0,0.12)'); bgGrad.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=bgGrad; ctx.fillRect(0,H*0.62,W,H*0.38);
+
+      // draw planet
+      drawPlanet();
+
+      // move ship
+      if(!crashed){ ship.x += ship.vx; ship.angle = Math.atan2((planet.y - ship.y),(planet.x - ship.x)); }
+
+      // engine wobble
+      ship.y += Math.sin(frame*0.05 + ship.x*0.002) * 0.6;
+
+      // draw ship and particles
+      drawShip();
+      updateParticles();
+      for(const p of particles){ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle = p.color; ctx.fill(); }
+
+      // small sparks near planet (atmosphere)
+      if(!crashed && Math.random()<0.02) spawnParticles(ship.x+Math.random()*30, ship.y+Math.random()*20, 3, Math.PI*1, 2);
+
+      checkCollision();
+      requestAnimationFrame(loop);
+    }
+
+    // initial auto-start
+    loop();
+
+    // allow user to trigger collision by pressing space or clicking
+    function triggerManual(){ if(!crashed){ ship.vx = 18; ship.x = -120; } }
+    addEventListener('keydown', (e)=>{ if(e.code==='Space'){ e.preventDefault(); triggerManual(); } });
+    addEventListener('click', ()=>{ if(!crashed) ship.vx = 14; });
+
+    // small polish: when overlay visible, pause ship (already crashed) and show refresh
+    document.getElementById('refreshBtn').addEventListener('click', (e)=>{ e.preventDefault(); location.reload(); });
+
+    // Accessibility: allow double-tap on mobile to trigger
+    let lastTap = 0; addEventListener('touchend', ()=>{ const t = Date.now(); if(t-lastTap<350){ ship.vx = 16; } lastTap = t; });
+
+    // start with a slightly slower ship so user can trigger faster one
+    ship.vx = 5;
+  </script>
 </body>
 </html>
